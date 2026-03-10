@@ -1,62 +1,77 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.8)
 project(gnss_comm)
 
-set(CMAKE_BUILD_TYPE "release")
-set(CMAKE_CXX_FLAGS "-std=c++11 ")
-set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wall -fPIC")
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  add_compile_options(-Wall -Wextra -Wpedantic)
+endif()
 
-find_package(catkin REQUIRED COMPONENTS
-  roscpp
-  rospy
-  std_msgs
-  message_generation
+set(CMAKE_CXX_STANDARD 14)
+
+# Dependencies
+find_package(ament_cmake REQUIRED)
+find_package(rosidl_default_generators REQUIRED)
+find_package(std_msgs REQUIRED)
+
+# Message generation
+set(msg_files
+  "msg/GnssTimeMsg.msg"
+  "msg/GnssEphemMsg.msg"
+  "msg/GnssGloEphemMsg.msg"
+  "msg/GnssMeasMsg.msg"
+  "msg/GnssObsMsg.msg"
+  "msg/GnssBestXYZMsg.msg"
+  "msg/GnssPVTSolnMsg.msg"
+  "msg/GnssSvsMsg.msg"
+  "msg/GnssTimePulseInfoMsg.msg"
+  "msg/StampedFloat64Array.msg"
 )
-
-file(GLOB_RECURSE message_files ${PROJECT_SOURCE_DIR}/msg/*.msg)
-add_message_files(FILES 
-    GnssTimeMsg.msg
-    GnssEphemMsg.msg
-    GnssGloEphemMsg.msg
-    GnssMeasMsg.msg
-    GnssObsMsg.msg
-    GnssBestXYZMsg.msg
-    GnssPVTSolnMsg.msg
-    GnssSvsMsg.msg
-    GnssTimePulseInfoMsg.msg
-    StampedFloat64Array.msg
-)
-
-generate_messages(
+rosidl_generate_interfaces(${PROJECT_NAME}
+  ${msg_files}
   DEPENDENCIES std_msgs
 )
 
-catkin_package(
-  CATKIN_DEPENDS message_runtime
-)
-
-catkin_package(
-    INCLUDE_DIRS include
-    LIBRARIES ${PROJECT_NAME}
-    CATKIN_DEPENDS roscpp std_msgs message_generation
-    DEPENDS
-)
-
+# Library
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 find_package(Eigen3 REQUIRED)
 find_package(Glog REQUIRED)
+
 include_directories(
-  ${EIGEN3_INCLUDE_DIR}
-  ${GLOG_INCLUDE_DIR}
-  ${catkin_INCLUDE_DIRS}
-  ${PROJECT_SOURCE_DIR}/include/${PROJECT_NAME}/
+  include
+  ${CMAKE_CURRENT_BINARY_DIR}/rosidl_generator_cpp
+  ${EIGEN3_INCLUDE_DIRS}
+  ${GLOG_INCLUDE_DIRS}
 )
 
 file(GLOB_RECURSE source_files ${PROJECT_SOURCE_DIR}/src/*.cpp)
-add_library(${PROJECT_NAME} ${source_files})
-target_include_directories(${PROJECT_NAME} PUBLIC
-  ${EIGEN3_INCLUDE_DIR}
-  ${catkin_INCLUDE_DIRS}
-  ${PROJECT_SOURCE_DIR}/include/${PROJECT_NAME}/
+add_library(gnss_comm_lib SHARED ${source_files})
+
+target_include_directories(gnss_comm_lib PUBLIC
+  $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/rosidl_generator_cpp>
+  $<INSTALL_INTERFACE:include>
+  ${EIGEN3_INCLUDE_DIRS}
+  ${GLOG_INCLUDE_DIRS}
 )
-target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES} ${GLOG_LIBRARIES})
-add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_generate_messages_cpp)
+
+ament_target_dependencies(gnss_comm_lib
+  std_msgs
+  rosidl_default_runtime
+)
+add_dependencies(gnss_comm_lib ${PROJECT_NAME}__rosidl_typesupport_cpp)
+target_link_libraries(gnss_comm_lib ${GLOG_LIBRARIES})
+
+# Install
+install(TARGETS gnss_comm_lib
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+)
+install(DIRECTORY include/
+  DESTINATION include
+)
+
+ament_export_include_directories(include)
+ament_export_libraries(gnss_comm_lib)
+ament_export_dependencies(std_msgs rosidl_default_runtime)
+
+ament_package()

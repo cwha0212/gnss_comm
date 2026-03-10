@@ -29,7 +29,7 @@
 *         Copyright (c) 2007-2020, T. Takasu, All rights reserved.
 */
 
-#include "gnss_utility.hpp"
+#include "gnss_comm/gnss_utility.hpp"
 
 namespace gnss_comm
 {
@@ -101,7 +101,7 @@ namespace gnss_comm
     gtime_t epoch2time(const double *ep)
     {
         const int doy[] = {1,32,60,91,121,152,182,213,244,274,305,335};
-        gtime_t time = {0};
+        gtime_t time = {0, 0.0};
         int days, sec, year=(int)ep[0], mon=(int)ep[1], day=(int)ep[2];
         
         if (year < 1970 || year > 2099 || mon < 1 || mon > 12) return time;
