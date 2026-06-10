@@ -1,4 +1,4 @@
-# gnss_comm
+# gnss_comm for ROS2
 
 **Authors/Maintainers:** CAO Shaozu (shaozu.cao AT gmail.com)
 
